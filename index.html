@@ -27,6 +27,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
         }
 
         .card {
@@ -54,8 +55,10 @@
         .tag.items { background-color: var(--accent-items); color: white; }
         .tag.ui { background-color: var(--accent-ui); color: white; }
         
-        /* Action Item 特殊标签 / Action Item Special Tag */
         .tag.action-item { background-color: #ef4444; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .tag.survey-good { background-color: #22c55e; color: white; }
+        .tag.survey-bad { background-color: #ef4444; color: white; }
+        .tag.survey-idea { background-color: #3a86ff; color: white; }
 
         /* 开发状态选择器 / Status Dropdown styling */
         .status-select {
@@ -74,26 +77,25 @@
         .status-review { background-color: #8338ec; color: white; }
         .status-done { background-color: #22c55e; color: white; }
 
-        /* 过滤器按钮状态 / Filter Button Active State */
-        .filter-btn {
+        /* 过滤器与视图切换按钮状态 / Filter & Tab Button Active State */
+        .filter-btn, .tab-btn {
             background-color: var(--card-bg);
             border: 2px solid transparent;
             transition: all 0.3s ease;
         }
-        .filter-btn:hover { border-color: var(--primary); }
-        .filter-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .filter-btn:hover, .tab-btn:hover { border-color: var(--primary); }
+        .filter-btn.active, .tab-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
 
-        /* 模态框背景模糊 / Modal Backdrop */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-        }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+        
+        /* 隐藏类 / Utility */
+        .hidden-view { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen p-6">
 
     <!-- 顶部导航与标题 / Header Area -->
-    <header class="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-center gap-4">
+    <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-gray-700 pb-6">
         <div>
             <h1 id="main-title" class="text-3xl font-bold text-[#fb8500] mb-2">C35 TGP2 Alpha Playtest Feedback Dashboard</h1>
         </div>
@@ -104,7 +106,7 @@
                 <span id="lang-text">🌐 EN / 中文</span>
             </button>
             <!-- 添加反馈按钮 / Add Feedback Button -->
-            <button onclick="openModal()" class="bg-[#fb8500] hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2">
+            <button id="btn-add-feedback" onclick="openModal()" class="bg-[#fb8500] hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                 </svg>
@@ -113,25 +115,156 @@
         </div>
     </header>
 
-    <!-- 过滤器 / Filter Controls -->
-    <div class="max-w-7xl mx-auto flex flex-wrap gap-3 mb-8" id="filter-container">
-        <button id="flt-all" class="filter-btn active rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('all')">All Feedback</button>
-        <button id="flt-camera" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('camera')">Camera</button>
-        <button id="flt-controls" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('controls')">Controls & Physics</button>
-        <button id="flt-ld" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('ld')">Level Design</button>
-        <button id="flt-art" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('art')">Art</button>
-        <button id="flt-audio" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('audio')">Audio</button>
-        <button id="flt-tech" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('tech')">Tech & Bugs</button>
-        <button id="flt-items" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('items')">Items</button>
-        <button id="flt-ui" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('ui')">UI</button>
+    <!-- 全局视图切换 / Global View Tabs -->
+    <div class="max-w-7xl mx-auto flex justify-center gap-4 mb-8">
+        <button id="tab-backlog" class="tab-btn active rounded-xl px-8 py-3 font-bold text-lg shadow-md" onclick="switchView('backlog')">
+            📋 Feedback Backlog
+        </button>
+        <button id="tab-survey" class="tab-btn rounded-xl px-8 py-3 font-bold text-lg shadow-md" onclick="switchView('survey')">
+            📊 Survey Report (23 Responses)
+        </button>
     </div>
 
-    <!-- 反馈卡片网格 / Feedback Grid -->
-    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="feedback-grid">
-        <!-- JS将动态渲染卡片于此 / Cards will be rendered here -->
+    <!-- ========================================== -->
+    <!-- 视图 1：任务积压看板 / VIEW 1: BACKLOG VIEW -->
+    <!-- ========================================== -->
+    <div id="view-backlog" class="block">
+        <!-- 过滤器 / Filter Controls -->
+        <div class="max-w-7xl mx-auto flex flex-wrap gap-3 mb-8" id="filter-container">
+            <button id="flt-all" class="filter-btn active rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('all')">All Feedback</button>
+            <button id="flt-camera" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('camera')">Camera</button>
+            <button id="flt-controls" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('controls')">Controls & Physics</button>
+            <button id="flt-ld" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('ld')">Level Design</button>
+            <button id="flt-art" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('art')">Art</button>
+            <button id="flt-audio" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('audio')">Audio</button>
+            <button id="flt-tech" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('tech')">Tech & Bugs</button>
+            <button id="flt-items" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('items')">Items</button>
+            <button id="flt-ui" class="filter-btn rounded-full px-5 py-2 font-semibold text-sm" onclick="filterSelection('ui')">UI</button>
+        </div>
+
+        <!-- 反馈卡片网格 / Feedback Grid -->
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="feedback-grid">
+            <!-- JS将动态渲染卡片于此 / Cards will be rendered here -->
+        </div>
     </div>
 
-    <!-- 添加/编辑反馈的弹窗表单 / Add & Edit Feedback Modal -->
+    <!-- ========================================== -->
+    <!-- 视图 2：问卷报告面板 / VIEW 2: SURVEY VIEW  -->
+    <!-- ========================================== -->
+    <div id="view-survey" class="hidden-view max-w-7xl mx-auto">
+        
+        <!-- 数据矩阵区 / Metrics Section -->
+        <div class="bg-[#2b2b36] rounded-xl p-8 mb-8 border border-gray-700 shadow-lg">
+            <h2 id="survey-title-metrics" class="text-2xl font-bold text-white mb-6 border-b border-gray-600 pb-2">Quantitative Metrics (Mean out of 5.00)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 评分条 / Rating Bars -->
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Overall Fun</span><span class="text-[#fb8500] font-bold">3.78</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-[#fb8500] h-3 rounded-full" style="width: 75.6%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Art and Visuals</span><span class="text-[#ffbe0b] font-bold">3.65</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-[#ffbe0b] h-3 rounded-full" style="width: 73%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Level of Difficulty</span><span class="text-[#3a86ff] font-bold">3.22</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-[#3a86ff] h-3 rounded-full" style="width: 64.4%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Stability</span><span class="text-[#06d6a0] font-bold">2.83</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-[#06d6a0] h-3 rounded-full" style="width: 56.6%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Game Controls (Handling)</span><span class="text-red-400 font-bold">2.70</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-red-400 h-3 rounded-full" style="width: 54%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-300 font-bold">Instructions / Tutorial</span><span class="text-red-500 font-bold">2.35</span></div>
+                        <div class="w-full bg-gray-700 rounded-full h-3"><div class="bg-red-500 h-3 rounded-full" style="width: 47%"></div></div>
+                    </div>
+                </div>
+                <!-- 玩家画像 / Demographics -->
+                <div class="bg-[#1e1e24] rounded-lg p-6 border border-gray-600">
+                    <h3 id="survey-title-demo" class="text-lg font-bold text-white mb-4 text-[#fb8500]">Player Demographics</h3>
+                    <ul class="text-gray-300 space-y-3 text-sm">
+                        <li class="flex justify-between"><span>🎮 <b>Weekly Playtime:</b></span> <span>Majority play <b>10-20 hours</b></span></li>
+                        <li class="flex justify-between"><span>🏎️ <b>Racing Game Familiarity:</b></span> <span>Mixed (Slightly to Extremely)</span></li>
+                        <li class="flex justify-between"><span>🤢 <b>Camera Satisfaction:</b></span> <span class="text-red-400">Majority Dissatisfied</span></li>
+                        <li class="flex justify-between"><span>🎯 <b>Track Clarity (Gear Track):</b></span> <span class="text-red-400">Highly Confusing</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文本回复区 / Qualitative Text Responses -->
+        <h2 id="survey-title-text" class="text-2xl font-bold text-white mb-6">Qualitative Responses</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- What went well -->
+            <div class="flex flex-col gap-4">
+                <div class="bg-[#22c55e] text-white font-bold py-2 px-4 rounded-t-lg shadow text-center" id="col-good">🌟 What Went Well</div>
+                
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"During the Roulette Track, going up the ramp with the plastic balls coming down was very fun... testing maneuvering ability."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"I really loved the jump pads. Being able to use them to hop from one track to another and skip sections felt really rewarding."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"Running on the track that have a bunch of balls rolling... Feeling like playing in a pachinko machine :D"</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"The 'Rainbow Road' style track and the initial experience of entering tunnels were highlights."</p>
+                </div>
+            </div>
+
+            <!-- What went wrong -->
+            <div class="flex flex-col gap-4">
+                <div class="bg-[#ef4444] text-white font-bold py-2 px-4 rounded-t-lg shadow text-center" id="col-bad">❌ What Went Wrong</div>
+                
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"The moving rainbow road. This made me very nauseous... The auto-launch portions of the tracks were nausea inducing."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"Controls broadly felt very slippery and imprecise... Sometimes I felt making turns consistently was needlessly difficult."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"In the Gear track, I felt very confused when I entered a gear during the more open section. It was very dark and there were no conveyance signs."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"The camera would jump in and out of canned sequences pretty abruptly... I didn't feel I had control of the camera motion."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"Engine sound is far too dominating and got annoying after awhile. Other gameplay critical sounds didn't feel impactful."</p>
+                </div>
+            </div>
+
+            <!-- Even better if -->
+            <div class="flex flex-col gap-4">
+                <div class="bg-[#3a86ff] text-white font-bold py-2 px-4 rounded-t-lg shadow text-center" id="col-idea">💡 Even Better If...</div>
+                
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"Tightening the controls on both the camera and the kart to make both feel slightly less slippery would help improve game feel a lot."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"Make the player able to steer immediately when they respawn, instead of having to wait 3 seconds."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"The drift took away my momentum and made me not want to do it... Try to make the drift take shorter time to accelerate."</p>
+                </div>
+                <div class="bg-[#2b2b36] p-4 rounded-lg border border-gray-700 shadow-md">
+                    <p class="text-gray-300 text-sm italic">"I would really like a stronger visual difference between the tracks. Even if it was just a lighting difference. So I feel like I am in a brand new race."</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- 添加/编辑反馈的弹窗表单 (仅在 Backlog 下可用) -->
+    <!-- ========================================== -->
     <div id="addModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50 p-4">
         <div class="bg-[#2b2b36] rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-700">
             <div class="p-6">
@@ -147,7 +280,7 @@
                             <span id="modal-action-text" class="text-sm font-bold text-[#fb8500]">🔥 Mark as Action Item (Pin to Top)</span>
                         </label>
                         
-                        <!-- 开发状态下拉框 (默认隐藏，勾选 Action Item 时显示) / Status Dropdown -->
+                        <!-- 开发状态下拉框 -->
                         <div id="status-container" class="mt-3 pt-3 border-t border-gray-700 hidden">
                             <label id="modal-status-label" class="block text-xs font-medium text-gray-400 mb-2">Development Status</label>
                             <select id="fb-status" class="w-full bg-[#2b2b36] border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#fb8500]">
@@ -194,7 +327,7 @@
         </div>
     </div>
 
-    <!-- 删除确认弹窗 / Delete Confirmation Modal -->
+    <!-- 删除确认弹窗 -->
     <div id="deleteModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50 p-4">
         <div class="bg-[#2b2b36] rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-700">
             <div class="p-6 text-center">
@@ -214,6 +347,8 @@
         const i18n = {
             'en': {
                 mainTitle: 'C35 TGP2 Alpha Playtest Feedback Dashboard',
+                tabBacklog: '📋 Feedback Backlog',
+                tabSurvey: '📊 Survey Report (23 Responses)',
                 addFb: 'Add Feedback',
                 fltAll: 'All Feedback',
                 fltCamera: 'Camera',
@@ -239,10 +374,18 @@
                 statusTodo: 'To Do',
                 statusInprogress: 'In Progress',
                 statusReview: 'Review',
-                statusDone: 'Done'
+                statusDone: 'Done',
+                survMetrics: 'Quantitative Metrics (Mean out of 5.00)',
+                survDemo: 'Player Demographics',
+                survText: 'Qualitative Responses',
+                colGood: '🌟 What Went Well',
+                colBad: '❌ What Went Wrong',
+                colIdea: '💡 Even Better If...'
             },
             'zh': {
                 mainTitle: 'C35 TGP2 Alpha 游戏测试反馈看板',
+                tabBacklog: '📋 待办问题积压 (Backlog)',
+                tabSurvey: '📊 问卷数据报告 (23份回收)',
                 addFb: '添加反馈',
                 fltAll: '全部反馈',
                 fltCamera: '相机',
@@ -268,12 +411,45 @@
                 statusTodo: '待办',
                 statusInprogress: '开发中',
                 statusReview: '审核中',
-                statusDone: '已完成'
+                statusDone: '已完成',
+                survMetrics: '定量数据评分 (满分 5.00)',
+                survDemo: '玩家群体画像',
+                survText: '定性文本反馈',
+                colGood: '🌟 表现优异的部分',
+                colBad: '❌ 体验糟糕的部分',
+                colIdea: '💡 改进建议'
             }
         };
         let currentLang = 'en';
 
-        // 1. 深度整合的基础数据 (Includes multi-tag, Bilingual, Actionable property & Status)
+        // ==========================================
+        // 视图切换逻辑 / View Switching Logic
+        // ==========================================
+        function switchView(viewName) {
+            const viewBacklog = document.getElementById('view-backlog');
+            const viewSurvey = document.getElementById('view-survey');
+            const tabBacklog = document.getElementById('tab-backlog');
+            const tabSurvey = document.getElementById('tab-survey');
+            const btnAdd = document.getElementById('btn-add-feedback');
+
+            if (viewName === 'backlog') {
+                viewBacklog.classList.remove('hidden-view');
+                viewSurvey.classList.add('hidden-view');
+                tabBacklog.classList.add('active');
+                tabSurvey.classList.remove('active');
+                btnAdd.classList.remove('hidden-view'); // 允许在backlog页面添加反馈
+            } else if (viewName === 'survey') {
+                viewBacklog.classList.add('hidden-view');
+                viewSurvey.classList.remove('hidden-view');
+                tabBacklog.classList.remove('active');
+                tabSurvey.classList.add('active');
+                btnAdd.classList.add('hidden-view'); // 问卷页面隐藏添加按钮
+            }
+        }
+
+        // ==========================================
+        // 基础积压数据 / Backlog Data
+        // ==========================================
         const defaultFeedbacks = [
             // ================= HANDWRITTEN NOTES =================
             { id: 'hw_ctrl_1', actionable: false, status: 'todo', categories: ['controls'], categoryLabels: ['Controls'], categoryLabelsZh: ['控制'], title: 'Kart Parameters vs U-Tracks', titleZh: '赛车参数与U型赛道不符', desc: 'Kart parameters (drifting, steering) do not fit the U-shaped tracks well. Overall drift handling feels poor ("drift not good") and needs better visual/audio conveyance.', descZh: '赛车参数（漂移、转向）与U型赛道不匹配。整体漂移手感较差，需要更好的视听反馈。' },
@@ -324,26 +500,27 @@
 
         window.onload = () => {
             loadFeedbacks();
-            // i18n initialization
             updateStaticTexts();
             renderGrid();
 
-            // 监听 Checkbox 控制下拉框显示隐藏
             document.getElementById('fb-actionable').addEventListener('change', function() {
                 document.getElementById('status-container').classList.toggle('hidden', !this.checked);
             });
-        };
+        }
 
-        // 切换语言逻辑
+        // ==========================================
+        // 国际化双语逻辑 / Translation Update
+        // ==========================================
         function toggleLanguage() {
             currentLang = currentLang === 'en' ? 'zh' : 'en';
             updateStaticTexts();
             renderGrid();
         }
 
-        // 更新静态页面词汇
         function updateStaticTexts() {
             document.getElementById('main-title').innerText = i18n[currentLang].mainTitle;
+            document.getElementById('tab-backlog').innerText = i18n[currentLang].tabBacklog;
+            document.getElementById('tab-survey').innerText = i18n[currentLang].tabSurvey;
             document.getElementById('add-fb-text').innerText = i18n[currentLang].addFb;
             document.getElementById('flt-all').innerText = i18n[currentLang].fltAll;
             document.getElementById('flt-camera').innerText = i18n[currentLang].fltCamera;
@@ -371,6 +548,14 @@
             document.getElementById('modal-status-review').innerText = i18n[currentLang].statusReview;
             document.getElementById('modal-status-done').innerText = i18n[currentLang].statusDone;
 
+            // Update Survey Tab Texts
+            document.getElementById('survey-title-metrics').innerText = i18n[currentLang].survMetrics;
+            document.getElementById('survey-title-demo').innerText = i18n[currentLang].survDemo;
+            document.getElementById('survey-title-text').innerText = i18n[currentLang].survText;
+            document.getElementById('col-good').innerText = i18n[currentLang].colGood;
+            document.getElementById('col-bad').innerText = i18n[currentLang].colBad;
+            document.getElementById('col-idea').innerText = i18n[currentLang].colIdea;
+
             document.querySelector('.i18n-cat-camera').innerText = i18n[currentLang].fltCamera;
             document.querySelector('.i18n-cat-controls').innerText = i18n[currentLang].fltControls;
             document.querySelector('.i18n-cat-ld').innerText = i18n[currentLang].fltLd;
@@ -381,14 +566,15 @@
             document.querySelector('.i18n-cat-ui').innerText = i18n[currentLang].fltUi;
         }
 
-        // 数据加载与兼容迁移
+        // ==========================================
+        // 数据处理逻辑 / Data Processing Logic
+        // ==========================================
         function loadFeedbacks() {
             const savedData = localStorage.getItem('tgp2_master_feedbacks');
             if (savedData) {
                 let parsedData = JSON.parse(savedData);
                 
                 parsedData = parsedData.map(item => {
-                    // Backward compatibility logic
                     if (item.category && typeof item.category === 'string') {
                         item.categories = [item.category];
                         item.categoryLabels = [item.categoryLabel];
@@ -402,8 +588,6 @@
                         });
                     }
                     if (typeof item.actionable === 'undefined') item.actionable = false;
-                    
-                    // 新增：自动赋予防崩溃的初始状态属性
                     if (typeof item.status === 'undefined') item.status = 'todo';
                     return item;
                 });
@@ -415,6 +599,13 @@
                         allFeedbacks.unshift(defItem); 
                     }
                 });
+
+                allFeedbacks = allFeedbacks.map(fb => {
+                    if (fb.desc && fb.desc.includes('[Handwritten Note] ')) {
+                        fb.desc = fb.desc.replace('[Handwritten Note] ', '');
+                    }
+                    return fb;
+                });
             } else {
                 allFeedbacks = JSON.parse(JSON.stringify(defaultFeedbacks)); // Deep copy
             }
@@ -425,12 +616,10 @@
             localStorage.setItem('tgp2_master_feedbacks', JSON.stringify(allFeedbacks));
         }
 
-        // 切换星标状态
         function toggleActionable(id) {
             const index = allFeedbacks.findIndex(fb => fb.id === id);
             if (index !== -1) {
                 allFeedbacks[index].actionable = !allFeedbacks[index].actionable;
-                // 如果刚刚被标记为行动项且没有状态，默认给个todo
                 if (allFeedbacks[index].actionable && !allFeedbacks[index].status) {
                     allFeedbacks[index].status = 'todo';
                 }
@@ -439,7 +628,6 @@
             }
         }
 
-        // 直接在卡片上更新开发状态 / Update status directly from card dropdown
         function updateStatus(id, newStatus) {
             const index = allFeedbacks.findIndex(fb => fb.id === id);
             if (index !== -1) {
@@ -449,7 +637,6 @@
             }
         }
 
-        // 渲染网格视图
         function renderGrid() {
             const grid = document.getElementById('feedback-grid');
             grid.innerHTML = ''; 
@@ -469,7 +656,7 @@
 
                 const card = document.createElement('div');
                 const borderColorClass = item.actionable ? 'border-[#fb8500] shadow-[0_0_10px_rgba(251,133,0,0.2)]' : 'border-gray-700';
-                const opacityClass = (item.actionable && item.status === 'done') ? 'is-done' : ''; // 完成变灰透明
+                const opacityClass = (item.actionable && item.status === 'done') ? 'is-done' : ''; 
                 card.className = `card rounded-xl p-5 flex flex-col gap-3 border ${borderColorClass} ${opacityClass} relative group`;
 
                 const displayTitle = (currentLang === 'zh' && item.titleZh) ? item.titleZh : item.title;
@@ -480,7 +667,6 @@
                     return `<span class="tag ${cat}">${label}</span>`;
                 }).join('');
 
-                // 渲染 Action Item 标识与 Kanban 状态下拉框 / Render Action Item & Kanban Status Select
                 let topBadgesHtml = '';
                 if (item.actionable) {
                     topBadgesHtml = `
@@ -540,7 +726,9 @@
             renderGrid();
         }
 
-        // 模态框逻辑
+        // ==========================================
+        // 模态框逻辑 / Modal Handling
+        // ==========================================
         const modal = document.getElementById('addModal');
         const form = document.getElementById('feedbackForm');
 
@@ -615,7 +803,6 @@
             }
         }
 
-        // 表单提交
         function submitFeedback(e) {
             e.preventDefault(); 
             
@@ -640,7 +827,7 @@
                     allFeedbacks[index] = {
                         ...allFeedbacks[index],
                         actionable: isActionable,
-                        status: isActionable ? formStatus : 'todo', // 若取消星标，自动重置回待办
+                        status: isActionable ? formStatus : 'todo', 
                         categories: categories,
                         categoryLabels: categoryLabels,
                         title: document.getElementById('fb-title').value,
